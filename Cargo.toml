@@ -1,0 +1,37 @@
+[package]
+name = "picodsp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+infinitedsp-core = { version = "0.7.0" }
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+panic-halt = "1.0.0"
+embassy-rp = { version = "0.9.0", features = ["rp235xa", "time-driver", "critical-section-impl", "boot2-generic-03h"] }
+embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-usb = { version = "0.5.1", features = ["defmt", "max-interface-count-8"] }
+embassy-sync = { version = "0.7.2", features = ["defmt"] }
+embassy-futures = { version = "0.1.2" }
+defmt = "1.0.1"
+defmt-rtt = "1.1.0"
+libm = "0.2"
+embedded-alloc = "0.7.0"
+heapless = "0.9.2"
+wide = { version = "1.1.1", default-features = false }
+static_cell = "2.1"
+embedded-storage = "0.3"
+embedded-storage-async = "0.4"
+
+[profile.dev]
+opt-level = 1
+debug = 2
+codegen-units = 16
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = 0
+panic = "abort"
