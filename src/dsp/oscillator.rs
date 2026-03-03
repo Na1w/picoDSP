@@ -1,9 +1,9 @@
-use infinitedsp_core::core::audio_param::AudioParam;
-use infinitedsp_core::core::channels::Mono;
-use infinitedsp_core::FrameProcessor;
-use infinitedsp_core::synthesis::oscillator::Waveform;
 use alloc::vec::Vec;
 use core::f32::consts::PI;
+use infinitedsp_core::core::audio_param::AudioParam;
+use infinitedsp_core::core::channels::Mono;
+use infinitedsp_core::synthesis::oscillator::Waveform;
+use infinitedsp_core::FrameProcessor;
 use wide::f32x4;
 
 pub struct FastOscillator {
@@ -70,13 +70,16 @@ impl FrameProcessor<Mono> for FastOscillator {
                         let freq = freq_chunk[i];
                         let inc = freq * inv_sr;
                         phase += inc;
-                        if phase >= 1.0 { phase -= 1.0; }
-                        else if phase < 0.0 { phase += 1.0; }
+                        if phase >= 1.0 {
+                            phase -= 1.0;
+                        } else if phase < 0.0 {
+                            phase += 1.0;
+                        }
 
                         out_chunk[i] = libm::sinf(phase * 2.0 * PI);
                     }
                 }
-            },
+            }
             Waveform::Triangle => {
                 for (out_chunk, freq_chunk) in chunks.iter_mut().zip(freq_chunks.iter()) {
                     let freq = f32x4::from(*freq_chunk);
@@ -86,8 +89,11 @@ impl FrameProcessor<Mono> for FastOscillator {
                     let inc_arr = inc.to_array();
                     for i in 0..4 {
                         phase += inc_arr[i];
-                        if phase >= 1.0 { phase -= 1.0; }
-                        else if phase < 0.0 { phase += 1.0; }
+                        if phase >= 1.0 {
+                            phase -= 1.0;
+                        } else if phase < 0.0 {
+                            phase += 1.0;
+                        }
                         p[i] = phase;
                     }
 
@@ -102,7 +108,7 @@ impl FrameProcessor<Mono> for FastOscillator {
                     }
                     *out_chunk = out;
                 }
-            },
+            }
             Waveform::Saw => {
                 for (out_chunk, freq_chunk) in chunks.iter_mut().zip(freq_chunks.iter()) {
                     let freq = f32x4::from(*freq_chunk);
@@ -112,8 +118,11 @@ impl FrameProcessor<Mono> for FastOscillator {
                     let inc_arr = inc.to_array();
                     for i in 0..4 {
                         phase += inc_arr[i];
-                        if phase >= 1.0 { phase -= 1.0; }
-                        else if phase < 0.0 { phase += 1.0; }
+                        if phase >= 1.0 {
+                            phase -= 1.0;
+                        } else if phase < 0.0 {
+                            phase += 1.0;
+                        }
                         p[i] = phase;
                     }
 
@@ -124,7 +133,7 @@ impl FrameProcessor<Mono> for FastOscillator {
                     }
                     *out_chunk = out;
                 }
-            },
+            }
             Waveform::Square => {
                 for (out_chunk, freq_chunk) in chunks.iter_mut().zip(freq_chunks.iter()) {
                     let freq = f32x4::from(*freq_chunk);
@@ -134,8 +143,11 @@ impl FrameProcessor<Mono> for FastOscillator {
                     let inc_arr = inc.to_array();
                     for i in 0..4 {
                         phase += inc_arr[i];
-                        if phase >= 1.0 { phase -= 1.0; }
-                        else if phase < 0.0 { phase += 1.0; }
+                        if phase >= 1.0 {
+                            phase -= 1.0;
+                        } else if phase < 0.0 {
+                            phase += 1.0;
+                        }
                         p[i] = phase;
                     }
 
@@ -149,7 +161,7 @@ impl FrameProcessor<Mono> for FastOscillator {
                     }
                     *out_chunk = out;
                 }
-            },
+            }
             Waveform::WhiteNoise => {
                 let mut rng = self.rng_state;
                 for out_chunk in chunks.iter_mut() {
@@ -168,15 +180,22 @@ impl FrameProcessor<Mono> for FastOscillator {
 
             if !matches!(self.waveform, Waveform::WhiteNoise) {
                 phase += inc;
-                if phase >= 1.0 { phase -= 1.0; }
-                else if phase < 0.0 { phase += 1.0; }
+                if phase >= 1.0 {
+                    phase -= 1.0;
+                } else if phase < 0.0 {
+                    phase += 1.0;
+                }
             }
 
             let val = match self.waveform {
                 Waveform::Sine => libm::sinf(phase * 2.0 * PI),
                 Waveform::Triangle => {
                     let x = phase;
-                    if x < 0.5 { 4.0 * x - 1.0 } else { 4.0 * (1.0 - x) - 1.0 }
+                    if x < 0.5 {
+                        4.0 * x - 1.0
+                    } else {
+                        4.0 * (1.0 - x) - 1.0
+                    }
                 }
                 Waveform::Saw => {
                     let naive = 2.0 * phase - 1.0;
@@ -186,8 +205,8 @@ impl FrameProcessor<Mono> for FastOscillator {
                 Waveform::Square => {
                     let naive = if phase < 0.5 { 1.0 } else { -1.0 };
                     let dt = inc.abs();
-                    let corr = Self::poly_blep(phase, dt)
-                        - Self::poly_blep((phase + 0.5) % 1.0, dt);
+                    let corr =
+                        Self::poly_blep(phase, dt) - Self::poly_blep((phase + 0.5) % 1.0, dt);
                     naive + corr
                 }
                 Waveform::WhiteNoise => {
@@ -195,7 +214,7 @@ impl FrameProcessor<Mono> for FastOscillator {
                     let v = Self::next_random(&mut rng);
                     self.rng_state = rng;
                     v
-                },
+                }
             };
             *sample = val;
         }
@@ -212,11 +231,15 @@ impl FrameProcessor<Mono> for FastOscillator {
         self.phase = 0.0;
     }
 
-    fn latency_samples(&self) -> u32 { 0 }
+    fn latency_samples(&self) -> u32 {
+        0
+    }
 
     fn name(&self) -> &str {
         "FastOscillator"
     }
 
-    fn visualize(&self, _indent: usize) -> alloc::string::String { "FastOscillator".into() }
+    fn visualize(&self, _indent: usize) -> alloc::string::String {
+        "FastOscillator".into()
+    }
 }

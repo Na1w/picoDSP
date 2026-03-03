@@ -70,10 +70,9 @@ fn get_dependency_version(pkg_name: &str) -> Option<String> {
             if parts.len() == 2 {
                 if parts[0] == "name" {
                     current_name = parts[1].trim_matches('"').to_string();
-                } else if parts[0] == "version"
-                    && current_name == pkg_name {
-                        return Some(parts[1].trim_matches('"').to_string());
-                    }
+                } else if parts[0] == "version" && current_name == pkg_name {
+                    return Some(parts[1].trim_matches('"').to_string());
+                }
             }
         }
     }

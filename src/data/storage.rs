@@ -1,8 +1,8 @@
-use embassy_rp::flash::{Flash, Async, ERASE_SIZE};
+use crate::data::presets::{get_default_presets, Preset};
+use crate::usb::logger::SYSTEM_STATUS_CHANNEL;
+use embassy_rp::flash::{Async, Flash, ERASE_SIZE};
 use embassy_rp::peripherals::FLASH;
 use embedded_storage_async::nor_flash::NorFlash;
-use crate::data::presets::{Preset, get_default_presets};
-use crate::usb::logger::SYSTEM_STATUS_CHANNEL;
 
 // "PDSP"
 pub const MAGIC: u32 = 0x50445350;
@@ -51,14 +51,20 @@ impl<'d> Storage<'d> {
             log_storage!("Storage init/version mismatch. Formatting...\r\n");
             self.format().await;
         } else {
-            log_storage!("Storage initialized. Found {} presets.\r\n", header.num_presets);
+            log_storage!(
+                "Storage initialized. Found {} presets.\r\n",
+                header.num_presets
+            );
         }
     }
 
     pub async fn format(&mut self) {
         log_storage!("Formatting storage area...\r\n");
 
-        self.flash.erase(ADDR_OFFSET, ADDR_OFFSET + ERASE_SIZE as u32).await.unwrap();
+        self.flash
+            .erase(ADDR_OFFSET, ADDR_OFFSET + ERASE_SIZE as u32)
+            .await
+            .unwrap();
 
         let defaults = get_default_presets();
         let num_presets = defaults.len() as u32;
@@ -78,8 +84,9 @@ impl<'d> Storage<'d> {
         let mut current_pos = 16;
         for preset in defaults.iter() {
             let size = core::mem::size_of::<Preset>();
-            let bytes = unsafe { core::slice::from_raw_parts(preset as *const _ as *const u8, size) };
-            sector_buf[current_pos..current_pos+size].copy_from_slice(bytes);
+            let bytes =
+                unsafe { core::slice::from_raw_parts(preset as *const _ as *const u8, size) };
+            sector_buf[current_pos..current_pos + size].copy_from_slice(bytes);
             current_pos += size;
         }
 
@@ -93,7 +100,11 @@ impl<'d> Storage<'d> {
         let header: StorageHeader = unsafe { core::ptr::read(buf.as_ptr() as *const _) };
 
         if index >= header.num_presets as usize {
-            log_storage!("Error: Preset index {} out of bounds (max {})\r\n", index, header.num_presets - 1);
+            log_storage!(
+                "Error: Preset index {} out of bounds (max {})\r\n",
+                index,
+                header.num_presets - 1
+            );
             return None;
         }
 
@@ -106,7 +117,10 @@ impl<'d> Storage<'d> {
             return None;
         }
 
-        self.flash.read(offset, &mut preset_buf[..preset_size]).await.unwrap();
+        self.flash
+            .read(offset, &mut preset_buf[..preset_size])
+            .await
+            .unwrap();
 
         let preset: Preset = unsafe { core::ptr::read(preset_buf.as_ptr() as *const _) };
 
@@ -121,7 +135,10 @@ impl<'d> Storage<'d> {
 
     pub async fn write_raw(&mut self, data: &[u8]) {
         log_storage!("SysEx Write: Erasing sector...\r\n");
-        self.flash.erase(ADDR_OFFSET, ADDR_OFFSET + ERASE_SIZE as u32).await.unwrap();
+        self.flash
+            .erase(ADDR_OFFSET, ADDR_OFFSET + ERASE_SIZE as u32)
+            .await
+            .unwrap();
 
         log_storage!("SysEx Write: Writing {} bytes...\r\n", data.len());
 

@@ -1,8 +1,8 @@
 use embassy_usb::class::uac1::SampleWidth;
 use embassy_usb::control::{InResponse, OutResponse, Request};
-use embassy_usb::driver::{Driver, EndpointIn, EndpointError};
-use embassy_usb::{Builder, Handler};
 use embassy_usb::descriptor::{SynchronizationType, UsageType};
+use embassy_usb::driver::{Driver, EndpointError, EndpointIn};
+use embassy_usb::{Builder, Handler};
 
 #[derive(Clone, Copy)]
 pub struct Config {
@@ -29,9 +29,7 @@ pub struct State<'d> {
 
 impl<'d> State<'d> {
     pub fn new() -> Self {
-        Self {
-            control: None,
-        }
+        Self { control: None }
     }
 }
 
@@ -46,43 +44,43 @@ impl<'d> Handler for Control<'d> {
 
     fn control_in<'a>(&'a mut self, req: Request, buf: &'a mut [u8]) -> Option<InResponse<'a>> {
         if req.request_type == embassy_usb::control::RequestType::Class
-           && req.recipient == embassy_usb::control::Recipient::Interface
+            && req.recipient == embassy_usb::control::Recipient::Interface
         {
-             let cs = (req.value >> 8) as u8;
+            let cs = (req.value >> 8) as u8;
 
-             if cs == 0x01 {
-                 match req.request {
-                     0x81 => {
-                         buf[0] = 0;
-                         return Some(InResponse::Accepted(&buf[..1]));
-                     },
-                     _ => return None,
-                 }
-             } else if cs == 0x02 {
-                 match req.request {
-                     0x81 => {
-                         buf[0] = 0x00;
-                         buf[1] = 0x00;
-                         return Some(InResponse::Accepted(&buf[..2]));
-                     },
-                     0x82 => {
-                         buf[0] = 0x00;
-                         buf[1] = 0xC0;
-                         return Some(InResponse::Accepted(&buf[..2]));
-                     },
-                     0x83 => {
-                         buf[0] = 0x00;
-                         buf[1] = 0x00;
-                         return Some(InResponse::Accepted(&buf[..2]));
-                     },
-                     0x84 => {
-                         buf[0] = 0x00;
-                         buf[1] = 0x01;
-                         return Some(InResponse::Accepted(&buf[..2]));
-                     },
-                     _ => return None,
-                 }
-             }
+            if cs == 0x01 {
+                match req.request {
+                    0x81 => {
+                        buf[0] = 0;
+                        return Some(InResponse::Accepted(&buf[..1]));
+                    }
+                    _ => return None,
+                }
+            } else if cs == 0x02 {
+                match req.request {
+                    0x81 => {
+                        buf[0] = 0x00;
+                        buf[1] = 0x00;
+                        return Some(InResponse::Accepted(&buf[..2]));
+                    }
+                    0x82 => {
+                        buf[0] = 0x00;
+                        buf[1] = 0xC0;
+                        return Some(InResponse::Accepted(&buf[..2]));
+                    }
+                    0x83 => {
+                        buf[0] = 0x00;
+                        buf[1] = 0x00;
+                        return Some(InResponse::Accepted(&buf[..2]));
+                    }
+                    0x84 => {
+                        buf[0] = 0x00;
+                        buf[1] = 0x01;
+                        return Some(InResponse::Accepted(&buf[..2]));
+                    }
+                    _ => return None,
+                }
+            }
         }
         None
     }
@@ -125,8 +123,10 @@ impl Uac1MicrophoneClass {
             0x09,
             0x24,
             0x01,
-            0x00, 0x01,
-            (total_length & 0xff) as u8, (total_length >> 8) as u8,
+            0x00,
+            0x01,
+            (total_length & 0xff) as u8,
+            (total_length >> 8) as u8,
             0x01,
             (ac_if_num.0 + 1),
         ];
@@ -137,39 +137,21 @@ impl Uac1MicrophoneClass {
             0x24,
             0x02,
             0x01,
-            0x03, 0x06,
+            0x03,
+            0x06,
             0x00,
             config.channel_count,
-            0x03, 0x00,
+            0x03,
+            0x00,
             0x00,
             0x00,
         ];
         alt.descriptor(0x24, &it_desc[2..]);
 
-        let fu_desc = [
-            0x0A,
-            0x24,
-            0x06,
-            0x02,
-            0x01,
-            0x01,
-            0x03,
-            0x00,
-            0x00,
-            0x00,
-        ];
+        let fu_desc = [0x0A, 0x24, 0x06, 0x02, 0x01, 0x01, 0x03, 0x00, 0x00, 0x00];
         alt.descriptor(0x24, &fu_desc[2..]);
 
-        let ot_desc = [
-            0x09,
-            0x24,
-            0x03,
-            0x03,
-            0x01, 0x01,
-            0x00,
-            0x02,
-            0x00,
-        ];
+        let ot_desc = [0x09, 0x24, 0x03, 0x03, 0x01, 0x01, 0x00, 0x02, 0x00];
         alt.descriptor(0x24, &ot_desc[2..]);
 
         let mut as_if = func.interface();
@@ -178,14 +160,7 @@ impl Uac1MicrophoneClass {
 
         let mut alt1 = as_if.alt_setting(0x01, 0x02, 0x00, None);
 
-        let as_general_desc = [
-            0x07,
-            0x24,
-            0x01,
-            0x03,
-            0x01,
-            0x01, 0x00,
-        ];
+        let as_general_desc = [0x07, 0x24, 0x01, 0x03, 0x01, 0x01, 0x00];
         alt1.descriptor(0x24, &as_general_desc[2..]);
 
         let format_desc = [
@@ -203,14 +178,7 @@ impl Uac1MicrophoneClass {
         ];
         alt1.descriptor(0x24, &format_desc[2..]);
 
-        let cs_ep_desc = [
-            0x07,
-            0x25,
-            0x01,
-            0x00,
-            0x00,
-            0x00, 0x00,
-        ];
+        let cs_ep_desc = [0x07, 0x25, 0x01, 0x00, 0x00, 0x00, 0x00];
         alt1.descriptor(0x25, &cs_ep_desc[2..]);
 
         let ep_in = alt1.endpoint_isochronous_in(
@@ -219,11 +187,9 @@ impl Uac1MicrophoneClass {
             1,
             SynchronizationType::Asynchronous,
             UsageType::DataEndpoint,
-            &[]
+            &[],
         );
 
-        Microphone {
-            ep_in,
-        }
+        Microphone { ep_in }
     }
 }
