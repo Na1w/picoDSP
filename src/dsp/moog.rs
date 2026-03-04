@@ -12,11 +12,12 @@ use infinitedsp_core::synthesis::envelope::Adsr;
 use infinitedsp_core::synthesis::oscillator::Waveform;
 use infinitedsp_core::FrameProcessor;
 
+use crate::control::midi::{
+    MidiControl, MidiFilterCutoff, MidiFilterResonance, MidiFreq, MidiGate,
+};
+use crate::data::presets::{OscSettings, Preset};
 use crate::dsp::lfo::FastLfo;
 use crate::dsp::oscillator::FastOscillator;
-use crate::control::midi::{MidiControl, MidiFilterCutoff, MidiFilterResonance, MidiFreq, MidiGate};
-use crate::data::presets::{OscSettings, Preset};
-use crate::dsp::sum::Sum;
 
 struct MoogOscillatorSection {
     osc1: FastOscillator,
@@ -73,21 +74,24 @@ impl FrameProcessor<Mono> for MoogOscillatorSection {
         }
 
         if self.level2 > 0.0001 {
-            self.osc2.process(&mut self.scratch_buffer[0..len], frame_index);
+            self.osc2
+                .process(&mut self.scratch_buffer[0..len], frame_index);
             for (s, scratch) in buffer.iter_mut().zip(self.scratch_buffer.iter()) {
                 *s += *scratch * self.level2;
             }
         }
 
         if self.level3 > 0.0001 {
-            self.osc3.process(&mut self.scratch_buffer[0..len], frame_index);
+            self.osc3
+                .process(&mut self.scratch_buffer[0..len], frame_index);
             for (s, scratch) in buffer.iter_mut().zip(self.scratch_buffer.iter()) {
                 *s += *scratch * self.level3;
             }
         }
 
         if self.level_noise > 0.0001 {
-            self.noise.process(&mut self.scratch_buffer[0..len], frame_index);
+            self.noise
+                .process(&mut self.scratch_buffer[0..len], frame_index);
             for (s, scratch) in buffer.iter_mut().zip(self.scratch_buffer.iter()) {
                 *s += *scratch * self.level_noise;
             }
@@ -157,7 +161,7 @@ pub fn new_moog_voice(
 
         if params.is_vibrato_enabled() {
             if let Some(v) = vib {
-                chain = chain.and(Sum::new(AudioParam::Dynamic(Box::new(v))));
+                chain = chain.and(Offset::new_param(AudioParam::Dynamic(Box::new(v))));
             }
         }
 
@@ -180,9 +184,18 @@ pub fn new_moog_voice(
         l
     });
 
-    let osc1_node = FastOscillator::new(create_pitch(&preset.osc1, osc1_vib), preset.osc1.get_waveform());
-    let osc2_node = FastOscillator::new(create_pitch(&preset.osc2, osc2_vib), preset.osc2.get_waveform());
-    let osc3_node = FastOscillator::new(create_pitch(&preset.osc3, osc3_vib), preset.osc3.get_waveform());
+    let osc1_node = FastOscillator::new(
+        create_pitch(&preset.osc1, osc1_vib),
+        preset.osc1.get_waveform(),
+    );
+    let osc2_node = FastOscillator::new(
+        create_pitch(&preset.osc2, osc2_vib),
+        preset.osc2.get_waveform(),
+    );
+    let osc3_node = FastOscillator::new(
+        create_pitch(&preset.osc3, osc3_vib),
+        preset.osc3.get_waveform(),
+    );
     let noise_node = FastOscillator::new(AudioParam::Static(0.0), Waveform::WhiteNoise);
 
     let mixer = MoogOscillatorSection::new(
@@ -206,14 +219,15 @@ pub fn new_moog_voice(
 
     let cutoff_ctrl = MidiFilterCutoff(midi.clone());
 
-    let mut cutoff_mod_chain = DspChain::new(cutoff_ctrl, sample_rate).and(Sum::new(
+    let mut cutoff_mod_chain = DspChain::new(cutoff_ctrl, sample_rate).and(Offset::new_param(
         AudioParam::Dynamic(Box::new(
             DspChain::new(filter_env, sample_rate).and(Gain::new_fixed(preset.filter.env_amount)),
         )),
     ));
 
     if let Some(lfo) = filter_lfo_node {
-        cutoff_mod_chain = cutoff_mod_chain.and(Sum::new(AudioParam::Dynamic(Box::new(lfo))));
+        cutoff_mod_chain =
+            cutoff_mod_chain.and(Offset::new_param(AudioParam::Dynamic(Box::new(lfo))));
     }
 
     let resonance_ctrl = MidiFilterResonance(midi.clone());
@@ -233,7 +247,5 @@ pub fn new_moog_voice(
 
     let vca = Gain::new(AudioParam::Dynamic(Box::new(amp_env)));
 
-    DspChain::new(mixer, sample_rate)
-        .and(filter_node)
-        .and(vca)
+    DspChain::new(mixer, sample_rate).and(filter_node).and(vca)
 }
