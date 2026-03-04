@@ -9,21 +9,20 @@ use infinitedsp_core::effects::filter::predictive_ladder::PredictiveLadderFilter
 use infinitedsp_core::effects::utility::gain::Gain;
 use infinitedsp_core::effects::utility::offset::Offset;
 use infinitedsp_core::synthesis::envelope::Adsr;
-use infinitedsp_core::synthesis::oscillator::Waveform;
+use infinitedsp_core::synthesis::lfo::Lfo;
+use infinitedsp_core::synthesis::oscillator::{Oscillator, Waveform};
 use infinitedsp_core::FrameProcessor;
 
 use crate::control::midi::{
     MidiControl, MidiFilterCutoff, MidiFilterResonance, MidiFreq, MidiGate,
 };
 use crate::data::presets::{OscSettings, Preset};
-use crate::dsp::lfo::FastLfo;
-use crate::dsp::oscillator::FastOscillator;
 
 struct MoogOscillatorSection {
-    osc1: FastOscillator,
-    osc2: FastOscillator,
-    osc3: FastOscillator,
-    noise: FastOscillator,
+    osc1: Oscillator,
+    osc2: Oscillator,
+    osc3: Oscillator,
+    noise: Oscillator,
     level1: f32,
     level2: f32,
     level3: f32,
@@ -34,10 +33,10 @@ struct MoogOscillatorSection {
 impl MoogOscillatorSection {
     #[allow(clippy::too_many_arguments)]
     fn new(
-        osc1: FastOscillator,
-        osc2: FastOscillator,
-        osc3: FastOscillator,
-        noise: FastOscillator,
+        osc1: Oscillator,
+        osc2: Oscillator,
+        osc3: Oscillator,
+        noise: Oscillator,
         l1: f32,
         l2: f32,
         l3: f32,
@@ -136,18 +135,20 @@ pub fn new_moog_voice(
 
     let (vibrato_node, filter_lfo_node) = if preset.lfo_enabled != 0 {
         let p = &preset.lfo;
-        let mut lfo_vib = FastLfo::new(p.frequency, p.get_waveform(), sample_rate);
+        let mut lfo_vib = Lfo::new(AudioParam::Static(p.frequency), p.get_waveform());
         lfo_vib.set_range(-p.vibrato_amount, p.vibrato_amount);
+        lfo_vib.set_sample_rate(sample_rate);
 
-        let mut lfo_filt = FastLfo::new(p.frequency, p.get_waveform(), sample_rate);
+        let mut lfo_filt = Lfo::new(AudioParam::Static(p.frequency), p.get_waveform());
         lfo_filt.set_range(-p.filter_amount, p.filter_amount);
+        lfo_filt.set_sample_rate(sample_rate);
 
         (Some(lfo_vib), Some(lfo_filt))
     } else {
         (None, None)
     };
 
-    let create_pitch = |params: &OscSettings, vib: Option<FastLfo>| -> AudioParam {
+    let create_pitch = |params: &OscSettings, vib: Option<Lfo>| -> AudioParam {
         let mut chain = DspChain::new(MidiFreq::new(midi.clone()), sample_rate);
 
         if params.octave != 0.0 {
@@ -168,35 +169,48 @@ pub fn new_moog_voice(
         AudioParam::Dynamic(Box::new(chain))
     };
 
-    let osc1_vib = vibrato_node.as_ref().map(|l| {
-        let mut l = FastLfo::new(l.get_frequency(), l.get_waveform(), sample_rate);
-        l.set_range(l.get_min(), l.get_max());
+    let osc1_vib = vibrato_node.as_ref().map(|_l| {
+        let p = &preset.lfo;
+        let mut l = Lfo::new(AudioParam::Static(p.frequency), p.get_waveform());
+        l.set_range(-p.vibrato_amount, p.vibrato_amount);
+        l.set_sample_rate(sample_rate);
         l
     });
-    let osc2_vib = vibrato_node.as_ref().map(|l| {
-        let mut l = FastLfo::new(l.get_frequency(), l.get_waveform(), sample_rate);
-        l.set_range(l.get_min(), l.get_max());
+    let osc2_vib = vibrato_node.as_ref().map(|_l| {
+        let p = &preset.lfo;
+        let mut l = Lfo::new(AudioParam::Static(p.frequency), p.get_waveform());
+        l.set_range(-p.vibrato_amount, p.vibrato_amount);
+        l.set_sample_rate(sample_rate);
         l
     });
-    let osc3_vib = vibrato_node.as_ref().map(|l| {
-        let mut l = FastLfo::new(l.get_frequency(), l.get_waveform(), sample_rate);
-        l.set_range(l.get_min(), l.get_max());
+    let osc3_vib = vibrato_node.as_ref().map(|_l| {
+        let p = &preset.lfo;
+        let mut l = Lfo::new(AudioParam::Static(p.frequency), p.get_waveform());
+        l.set_range(-p.vibrato_amount, p.vibrato_amount);
+        l.set_sample_rate(sample_rate);
         l
     });
 
-    let osc1_node = FastOscillator::new(
+    let mut osc1_node = Oscillator::new(
         create_pitch(&preset.osc1, osc1_vib),
         preset.osc1.get_waveform(),
     );
-    let osc2_node = FastOscillator::new(
+    osc1_node.set_sample_rate(sample_rate);
+
+    let mut osc2_node = Oscillator::new(
         create_pitch(&preset.osc2, osc2_vib),
         preset.osc2.get_waveform(),
     );
-    let osc3_node = FastOscillator::new(
+    osc2_node.set_sample_rate(sample_rate);
+
+    let mut osc3_node = Oscillator::new(
         create_pitch(&preset.osc3, osc3_vib),
         preset.osc3.get_waveform(),
     );
-    let noise_node = FastOscillator::new(AudioParam::Static(0.0), Waveform::WhiteNoise);
+    osc3_node.set_sample_rate(sample_rate);
+
+    let mut noise_node = Oscillator::new(AudioParam::Static(0.0), Waveform::WhiteNoise);
+    noise_node.set_sample_rate(sample_rate);
 
     let mixer = MoogOscillatorSection::new(
         osc1_node,

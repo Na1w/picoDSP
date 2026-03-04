@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-infinitedsp-core = { version = "0.7.0" }
+infinitedsp-core = { version = "0.9.0" }
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
 panic-halt = "1.0.0"
