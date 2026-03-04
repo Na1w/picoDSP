@@ -1,4 +1,4 @@
-use crate::dsp::reverb::Reverb;
+use crate::data::presets::Preset;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use embassy_time::Instant;
@@ -7,6 +7,8 @@ use infinitedsp_core::core::channels::{DualMono, Stereo};
 use infinitedsp_core::core::dsp_chain::DspChain;
 use infinitedsp_core::core::parallel_mixer::ParallelMixer;
 use infinitedsp_core::effects::time::delay::Delay;
+use infinitedsp_core::effects::time::reverb::Reverb;
+use infinitedsp_core::effects::utility::bypass::Bypass;
 use infinitedsp_core::effects::utility::gain::Gain;
 use infinitedsp_core::effects::utility::stereo_widener::StereoWidener;
 use infinitedsp_core::FrameProcessor;
@@ -16,8 +18,6 @@ use crate::common::shared::{
     SAMPLE_RATE,
 };
 use crate::control::midi::MidiControl;
-use crate::data::presets::Preset;
-use crate::dsp::bypass::Bypass;
 use crate::dsp::moog::new_moog_voice;
 use crate::usb::logger::{LogData, LOG_CHANNEL, SYSTEM_STATUS_CHANNEL};
 use crate::HEAP;

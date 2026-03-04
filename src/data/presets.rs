@@ -1,4 +1,4 @@
-use crate::dsp::lfo::FastLfoWaveform;
+use infinitedsp_core::synthesis::lfo::LfoWaveform;
 use infinitedsp_core::synthesis::oscillator::Waveform;
 
 #[repr(C)]
@@ -106,13 +106,13 @@ impl OscSettings {
 }
 
 impl LfoSettings {
-    pub fn get_waveform(&self) -> FastLfoWaveform {
+    pub fn get_waveform(&self) -> LfoWaveform {
         match self.waveform {
-            0 => FastLfoWaveform::Sine,
-            1 => FastLfoWaveform::Triangle,
-            2 => FastLfoWaveform::Saw,
-            3 => FastLfoWaveform::Square,
-            _ => FastLfoWaveform::Sine,
+            0 => LfoWaveform::Sine,
+            1 => LfoWaveform::Triangle,
+            2 => LfoWaveform::Saw,
+            3 => LfoWaveform::Square,
+            _ => LfoWaveform::Sine,
         }
     }
 }
@@ -141,14 +141,15 @@ fn osc(wf: Waveform, level: f32, octave: f32, detune: f32, vib: bool) -> OscSett
     }
 }
 
-fn lfo(freq: f32, wf: FastLfoWaveform, vib: f32, filt: f32) -> LfoSettings {
+fn lfo(freq: f32, wf: LfoWaveform, vib: f32, filt: f32) -> LfoSettings {
     LfoSettings {
         frequency: freq,
         waveform: match wf {
-            FastLfoWaveform::Sine => 0,
-            FastLfoWaveform::Triangle => 1,
-            FastLfoWaveform::Saw => 2,
-            FastLfoWaveform::Square => 3,
+            LfoWaveform::Sine => 0,
+            LfoWaveform::Triangle => 1,
+            LfoWaveform::Saw => 2,
+            LfoWaveform::Square => 3,
+            _ => 0,
         },
         vibrato_amount: vib,
         filter_amount: filt,
@@ -198,7 +199,7 @@ impl Default for Preset {
                 release: 0.1,
             },
             lfo_enabled: 0,
-            lfo: lfo(1.0, FastLfoWaveform::Sine, 0.0, 0.0),
+            lfo: lfo(1.0, LfoWaveform::Sine, 0.0, 0.0),
             delay: delay_set(0.25, 0.3, 0.3, false),
             reverb: reverb_set(0.5, 0.5, 0.1, false),
             _padding: [0; 4],
@@ -231,7 +232,7 @@ pub fn get_default_presets() -> [Preset; 5] {
                 release: 0.5,
             },
             lfo_enabled: 1,
-            lfo: lfo(5.0, FastLfoWaveform::Sine, 2.0, 0.0),
+            lfo: lfo(5.0, LfoWaveform::Sine, 2.0, 0.0),
             delay: delay_set(0.4, 0.3, 0.3, true),
             reverb: reverb_set(0.5, 0.5, 0.1, false),
             _padding: [0; 4],
@@ -259,7 +260,7 @@ pub fn get_default_presets() -> [Preset; 5] {
                 release: 0.2,
             },
             lfo_enabled: 0,
-            lfo: lfo(1.0, FastLfoWaveform::Sine, 0.0, 0.0),
+            lfo: lfo(1.0, LfoWaveform::Sine, 0.0, 0.0),
             delay: delay_set(0.15, 0.2, 0.2, true),
             reverb: reverb_set(0.3, 0.5, 0.1, false),
             _padding: [0; 4],
@@ -287,7 +288,7 @@ pub fn get_default_presets() -> [Preset; 5] {
                 release: 0.2,
             },
             lfo_enabled: 1,
-            lfo: lfo(0.15, FastLfoWaveform::Sine, 8.0, 0.0),
+            lfo: lfo(0.15, LfoWaveform::Sine, 8.0, 0.0),
             delay: delay_set(0.25, 0.3, 0.3, false),
             reverb: reverb_set(0.5, 0.5, 0.2, true),
             _padding: [0; 4],
@@ -315,7 +316,7 @@ pub fn get_default_presets() -> [Preset; 5] {
                 release: 0.1,
             },
             lfo_enabled: 0,
-            lfo: lfo(1.0, FastLfoWaveform::Sine, 0.0, 0.0),
+            lfo: lfo(1.0, LfoWaveform::Sine, 0.0, 0.0),
             delay: delay_set(0.25, 0.3, 0.3, false),
             reverb: reverb_set(0.5, 0.5, 0.1, false),
             _padding: [0; 4],
@@ -343,7 +344,7 @@ pub fn get_default_presets() -> [Preset; 5] {
                 release: 0.2,
             },
             lfo_enabled: 1,
-            lfo: lfo(5.5, FastLfoWaveform::Sine, 1.5, 0.0),
+            lfo: lfo(5.5, LfoWaveform::Sine, 1.5, 0.0),
             delay: delay_set(0.25, 0.3, 0.3, true),
             reverb: reverb_set(0.5, 0.5, 0.1, true),
             _padding: [0; 4],
